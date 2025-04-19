@@ -1,8 +1,3 @@
--- [[ GENERATED WITH InfernoHub/Scriptify STUDIO PLUGIN ]] --
--- Scriptify Version: 1.1
-
---
-
 -- Create objects
 local parent = nil;
 local objects = {
@@ -4699,7 +4694,7 @@ local modules do
 					end
 				end
 
-				-- page:AddLabel({Text = "NullFire Version: "..versions.FireHubVersion})
+				-- page:AddLabel({Text = "PolleserHub Version: "..versions.FireHubVersion})
 				page:AddLabel({Text = "FireLib Version: "..versions.FireLibraryVersion})
 				page:AddLabel({Text = "Executor Name & Version: " .. execName .. "; " .. execVersion})
 				page:AddSeparator()
