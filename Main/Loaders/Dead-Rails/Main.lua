@@ -1,5 +1,3 @@
-print("Hello")
-
 local defaults = {
 	ESP = {
 		["Money BagESP"] = false,
