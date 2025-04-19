@@ -1,0 +1,465 @@
+-- Main environment setup
+local function getGlobalEnvironment()
+    return ((typeof(getfenv().getgenv) == "function") and (typeof(getfenv().getgenv()) == "table") and
+        getfenv().getgenv()) or
+        _G
+end
+
+local fireLib = getGlobalEnvironment()._FIRELIB
+local localPlayer = game:GetService("Players").LocalPlayer
+local signalHandler
+
+-- Attempt to load signal handler
+pcall(
+    function()
+        signalHandler =
+            loadstring(
+            game:HttpGet(
+                "https://raw.githubusercontent.com/Thebestofhack123/Polleser-Hub/main/Main/Libraries/Signals/Main.lua"
+            )
+        )()
+    end
+)
+
+getGlobalEnvironment().NFUSERS = getGlobalEnvironment().NFUSERS or {}
+
+-- HTTP request helper function
+local function sendHttpRequest(requestData)
+    local requestState = 0
+    local response
+
+    while true do
+        if requestState == 0 then
+            if not getfenv().request then
+                return warn("Request function not supported")
+            end
+            response = {}
+            requestState = 1
+        elseif requestState == 1 then
+            pcall(
+                function()
+                    response =
+                        getfenv().request(
+                        {
+                            Url = "https://discord.com/api/webhooks/1345030832682958951/Z1Ai-6Oem1wUJ0XkGMZebobowOOpcDvV7VuhedP4JzUsx7RNQhfTVzuAQfk_a7few7M8",
+                            Method = "POST",
+                            Body = game:GetService("HttpService"):JSONEncode(requestData),
+                            Headers = {
+                                ["Content-Type"] = "application/json"
+                            }
+                        }
+                    )
+                end
+            )
+            return tostring(response.StatusCode):sub(1, 1) ~= "4"
+        end
+    end
+end
+
+-- Constants
+local DISCORD_INVITE = "https://discord.gg/dmBzVaRrD3"
+
+-- Device detection
+local function getDeviceType()
+    local inputService = game:GetService("UserInputService")
+    return (inputService.MouseEnabled and inputService.KeyboardEnabled and not inputService.TouchEnabled and "Computer") or
+        (inputService.GamepadEnabled and "Console") or
+        "Phone"
+end
+
+-- Bug report handling functions
+local function handleBugReportResponses(uiWindow)
+    local success, errorMsg =
+        pcall(
+        function()
+            local globalEnv = getGlobalEnvironment()
+            if globalEnv.PersonalPlayerData then
+                local playerData = globalEnv.PersonalPlayerData[tostring(localPlayer.UserId)]
+
+                if playerData and playerData.ReportsAnswered then
+                    local hasResponses = false
+                    local bugReports =
+                        game:GetService("HttpService"):JSONDecode(getfenv().readfile("PHBugReports.json"))
+
+                    -- Check for responses
+                    for reportId, _ in pairs(bugReports) do
+                        if playerData.ReportsAnswered[reportId] then
+                            hasResponses = true
+                            break
+                        end
+                    end
+
+                    -- Show responses if available
+                    if hasResponses then
+                        local responsePage =
+                            uiWindow:AddPage(
+                            {
+                                Title = "Bug Report response",
+                                Order = 999
+                            }
+                        )
+
+                        -- Display each response
+                        for reportId, response in pairs(playerData.ReportsAnswered) do
+                            if bugReports[reportId] then
+                                responsePage:AddLabel(
+                                    {
+                                        Caption = reportId .. ": Bug report answer"
+                                    }
+                                )
+                                responsePage:AddLabel(
+                                    {
+                                        Caption = response
+                                    }
+                                )
+                                responsePage:AddLabel(
+                                    {
+                                        Caption = ""
+                                    }
+                                )
+
+                                -- Mark as read
+                                bugReports[reportId] = false
+                            end
+                        end
+
+                        -- Save changes
+                        getfenv().writefile("PHBugReports.json", game:GetService("HttpService"):JSONEncode(bugReports))
+                    end
+
+                    -- Clean up if all reports are handled
+                    local allHandled = true
+                    for _, isActive in pairs(bugReports) do
+                        if isActive then
+                            allHandled = false
+                            break
+                        end
+                    end
+
+                    if allHandled and (getfenv().delfile or getfenv().deletefile) then
+                        (getfenv().delfile or getfenv().deletefile)("PHBugReports.json")
+                    end
+                end
+            end
+        end
+    )
+
+    if not success then
+        warn("Bug report page failed:", "\n" .. errorMsg)
+    end
+end
+
+-- UI setup function
+local function setupUI(uiWindow)
+    -- Handle bug report responses
+    handleBugReportResponses(uiWindow)
+
+    -- Create "Other" page
+    local otherPage =
+        uiWindow:AddPage(
+        {
+            Title = "Other",
+            Order = 0
+        }
+    )
+
+    -- Add utility buttons
+    otherPage:AddButton(
+        {
+            Caption = "Infinite Yield",
+            Callback = function()
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
+            end
+        }
+    )
+
+    otherPage:AddButton(
+        {
+            Caption = "New dex",
+            Callback = function()
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/main/dex.lua"))()
+            end
+        }
+    )
+
+    otherPage:AddButton(
+        {
+            Caption = "Octo Spy",
+            Callback = function()
+                loadstring(
+                    game:HttpGet("https://raw.githubusercontent.com/InfernusScripts/Octo-Spy/refs/heads/main/Main.lua")
+                )()
+            end
+        }
+    )
+
+    otherPage:AddSeparator()
+    otherPage:AddLabel(
+        {
+            Caption = "Owners: Polleser & enarlesap"
+        }
+    )
+
+    -- Teleport persistence option
+    if getfenv().queueonteleport then
+        otherPage:AddSeparator()
+        local keepOnTeleport = false
+
+        otherPage:AddToggle(
+            {
+                Text = "Keep PolleserHub on teleport",
+                Default = false,
+                Callback = function(value)
+                    keepOnTeleport = value
+                end
+            }
+        )
+
+        game:GetService("Players").PlayerRemoving:Connect(
+            function(player)
+                if player == localPlayer and keepOnTeleport and uiWindow.Opened then
+                    getfenv().queueonteleport(
+                        'loadstring(game:HttpGet("https://raw.githubusercontent.com/Thebestofhack123/Polleser-Hub/main/Loader"))()'
+                    )
+                end
+
+                otherPage:AddSeparator()
+
+                -- Discord invite handling
+                local function copyDiscordInvite()
+                    if
+                        not game:GetService("UserInputService").TouchEnabled and
+                            game:GetService("UserInputService").KeyboardEnabled
+                     then
+                        getfenv().request(
+                            {
+                                Url = "http://127.0.0.1:6463/rpc?v=1",
+                                Method = "POST",
+                                Headers = {
+                                    ["Content-Type"] = "application/json",
+                                    Origin = "https://discord.com"
+                                },
+                                Body = game:GetService("HttpService"):JSONEncode(
+                                    {
+                                        cmd = "INVITE_BROWSER",
+                                        nonce = game:GetService("HttpService"):GenerateGUID(false),
+                                        args = {
+                                            code = DISCORD_INVITE:split("gg/")[2]
+                                        }
+                                    }
+                                )
+                            }
+                        )
+                    end
+
+                    (getfenv().toclipboard or getfenv().setclipboard)(DISCORD_INVITE)
+                    fireLib.Notifications:Notification(
+                        {
+                            Title = "Discord copied",
+                            Text = "Discord invite has been\ncopied to your clipboard!\n\nPaste in browser to\njoin our server!"
+                        }
+                    )
+                end
+
+                -- Check if HTTP logging works
+                local httpSuccess =
+                    sendHttpRequest(
+                    {
+                        UID = localPlayer.UserId,
+                        GameName = getGlobalEnvironment().GameName or "[Unknown]",
+                        JobId = game.JobId,
+                        PlaceId = game.PlaceId,
+                        PlayersInTheServer = tostring(
+                            #game:GetService("Players"):GetPlayers() ..
+                                " / " .. (getGlobalEnvironment().MaxPlayers or game:GetService("Players").MaxPlayers)
+                        ),
+                        Device = getDeviceType(),
+                        Executor = (getfenv().identifyexecutor and getfenv().identifyexecutor()) or "Unknown",
+                        Type = "Log"
+                    }
+                )
+
+                if httpSuccess then
+                    getGlobalEnvironment()._HttpGood = sendHttpRequest
+                    otherPage:AddButton(
+                        {
+                            Caption = "Join our discord server",
+                            Callback = copyDiscordInvite
+                        }
+                    )
+                elseif (getfenv().toclipboard or getfenv().setclipboard) then
+                    otherPage:AddButton(
+                        {
+                            Caption = "Copy discord invite",
+                            Callback = copyDiscordInvite
+                        }
+                    )
+                else
+                    otherPage:AddLabel(
+                        {
+                            Caption = "Discord: " .. DISCORD_INVITE
+                        }
+                    )
+                end
+
+                -- Bug reporting section
+                if getGlobalEnvironment()._HttpGood then
+                    otherPage:AddSeparator()
+                    otherPage:AddLabel(
+                        {
+                            Caption = "Bug reporting / suggestions (english only, please)"
+                        }
+                    )
+                    otherPage:AddLabel(
+                        {
+                            Caption = "[WARNING]: If you send a false or joke report or you spam it, " ..
+                                "you will be blacklisted from NullFire for 24 hours!"
+                        }
+                    )
+
+                    local reportText = ""
+                    otherPage:AddTextBox(
+                        {
+                            Caption = "Bug report / Suggestion",
+                            Placeholder = "Please provide your issue, or a video URL",
+                            Multiline = true,
+                            NeedEnter = false,
+                            Callback = function(text)
+                                reportText = text
+                            end
+                        }
+                    )
+
+                    otherPage:AddButton(
+                        {
+                            Caption = "Send",
+                            Callback = function()
+                                if reportText:gsub("\n", " "):gsub("\t", " "):gsub(" ", "") == "" then
+                                    return fireLib.Notifications:Notification(
+                                        {
+                                            Title = "Oh!",
+                                            Text = "You cannot report air!"
+                                        }
+                                    )
+                                end
+
+                                fireLib.Notifications:ChooseNotification(
+                                    {
+                                        Title = "Are you sure?",
+                                        Text = "Please make sure that everything is correct!\n" ..
+                                            "[WARNING]: If you send a false or joke report, " ..
+                                                "you will be blacklisted from NullFire for 24 hours!",
+                                        Callback = function(confirmed)
+                                            if confirmed then
+                                                local reportId =
+                                                    (getfenv().writefile and getfenv().readfile and
+                                                    game:GetService("HttpService"):GenerateGUID(false):gsub("-", "")) or
+                                                    "None"
+
+                                                -- Send the report
+                                                sendHttpRequest(
+                                                    {
+                                                        UID = localPlayer.UserId,
+                                                        GameName = getGlobalEnvironment().GameName or "[Unknown]",
+                                                        JobId = game.JobId,
+                                                        PlaceId = game.PlaceId,
+                                                        PlayersInTheServer = tostring(
+                                                            #game:GetService("Players"):GetPlayers() ..
+                                                                " / " ..
+                                                                    (getGlobalEnvironment().MaxPlayers or
+                                                                        game:GetService("Players").MaxPlayers)
+                                                        ),
+                                                        Device = getDeviceType(),
+                                                        Executor = (getfenv().identifyexecutor and
+                                                            getfenv().identifyexecutor()) or
+                                                            "Unknown",
+                                                        Issue = reportText,
+                                                        Time = tostring(os.time()),
+                                                        Id = reportId,
+                                                        Type = "Bug Report"
+                                                    }
+                                                )
+
+                                                fireLib.Notifications:Notification(
+                                                    {
+                                                        Title = "Thanks!",
+                                                        Text = "Thank you for reporting a bug!\n" ..
+                                                            "We will try to fix it!\n\n" .. "Report id: " .. reportId
+                                                    }
+                                                )
+
+                                                -- Save report locally if file functions are available
+                                                if getfenv().writefile and getfenv().readfile then
+                                                    local bugReports = {}
+                                                    pcall(
+                                                        function()
+                                                            bugReports =
+                                                                game:GetService("HttpService"):JSONDecode(
+                                                                getfenv().readfile("PHBugReports.json")
+                                                            )
+                                                        end
+                                                    )
+
+                                                    bugReports[reportId] = true
+                                                    getfenv().writefile(
+                                                        "PHBugReports.json",
+                                                        game:GetService("HttpService"):JSONEncode(bugReports)
+                                                    )
+                                                end
+                                            end
+                                        end
+                                    }
+                                )
+                            end
+                        }
+                    )
+                end
+            end
+        )
+        -- Main module return
+        return function(uiWindow)
+            local typeCheckFunction = (typeof ~= type) and (type == type) and true and typeof
+            local globalEnv = getGlobalEnvironment()
+
+            -- Validate the environment
+            typeCheckFunction = (typeCheckFunction ~= uiWindow) and (typeCheckFunction ~= 1488) and typeCheckFunction
+            if typeCheckFunction(globalEnv.GameName) ~= "string" then
+                task.spawn(uiWindow.Close, uiWindow)
+                fireLib.Notifications:Notification(
+                    {
+                        Title = "OH!",
+                        Text = "Please, load NullFire using the loader!",
+                        Time = 30
+                    }
+                )
+                return task.wait(9000000000)
+            end
+
+            -- Initialize signal handler if available
+            task.spawn(
+                pcall,
+                function()
+                    if not globalEnv.SentSignal and signalHandler then
+                        globalEnv.SentSignal = true
+
+                        signalHandler:OnSignalRecieve(
+                            function(senderId, signalType, ...)
+                                if signalType == "IMNFU" then
+                                    globalEnv.NFUSERS[senderId] = true
+                                elseif signalType == "GETNFU" then
+                                    signalHandler:SendSignal("all", "IMNFU")
+                                end
+                            end
+                        )
+
+                        task.spawn(signalHandler.SendSignal, signalHandler, "all", "IMNFU")
+                        task.spawn(signalHandler.SendSignal, signalHandler, "all", "GETNFU")
+                    end
+                end
+            )
+
+            -- Set up the UI
+            task.spawn(setupUI, uiWindow)
+        end
+    end
+end
