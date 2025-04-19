@@ -17,7 +17,7 @@ lib = lib or t._FIRELIB
 if not t.EAGLE then
     t.EAGLE = true
     local mw = lib.MakeWindow
-    local fhop = loadstring(game:HttpGet("https://raw.githubusercontent.com/Thebestofhack123/Polleser-Hub/main/Main/Libraries/Fire-Lib/PolleserHub%20Only%20page.lua"))()
+    local fhop = loadstring(game:HttpGet("https://raw.githubusercontent.com/Thebestofhack123/Polleser-Hub/main/Main/Libraries/Fire-Lib/PolleserHub%20Only%20Page.lua"))()
     lib.MakeWindow = function(self, options, fireHubWindow)
         local window = mw(self, options)
         if fireHubWindow then
