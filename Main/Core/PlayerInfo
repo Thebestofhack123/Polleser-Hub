@@ -1,1 +1,12 @@
-
+{
+  "8281207914": {"Admin":true},
+  "8281207914": {"Admin":true},
+  "8281207914": {"Admin":true},
+  "8281207914": {"Admin":true},
+  "370366902": {"Admin":true},
+  "370366902": {"Admin":true},
+  "370366902": {"Admin":true},
+  "370366902": {"Admin":true},
+  "id": {"Ban": [time, "message"]},
+  "id": {"ReportsAnswered": {"report id": ""}},
+}
